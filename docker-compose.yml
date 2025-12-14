@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: reddit_trend_api
+    ports:
+      - "8000:8000"
+    environment:
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET}
+      - REDDIT_USERNAME=${REDDIT_USERNAME}
+      - REDDIT_PASSWORD=${REDDIT_PASSWORD}
+      - REDDIT_USER_AGENT=${REDDIT_USER_AGENT}
+    volumes:
+      - ./app/data:/app/app/data
+      - ./.env:/app/.env
+    command: python -m uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  dashboard:
+    build: .
+    container_name: reddit_trend_dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    volumes:
+      - ./streamlit_app:/app/streamlit_app
+      - ./app/data:/app/app/data
+    command: streamlit run streamlit_app/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    restart: unless-stopped
+
+volumes:
+  data:
+    driver: local
+
